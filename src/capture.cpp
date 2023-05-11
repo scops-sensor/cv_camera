@@ -8,20 +8,18 @@ namespace cv_camera
 {
 
 namespace enc = sensor_msgs::image_encodings;
+using namespace std::literals;
 
-Capture::Capture(rclcpp::Node::SharedPtr node, const std::string &topic_name,
-                 uint32_t buffer_size, const std::string &frame_id)
-    : node_(node),
-      it_(node_),
-      topic_name_(topic_name),
-      frame_id_(frame_id),
-      buffer_size_(buffer_size),
-      info_manager_(node_.get(), frame_id),
-      capture_delay_(rclcpp::Duration(0))
+Capture::Capture(rclcpp::Node::SharedPtr node, const std::string& topic_name, uint32_t buffer_size,
+                 const std::string& frame_id)
+  : node_(node)
+  , it_(node_)
+  , topic_name_(topic_name)
+  , frame_id_(frame_id)
+  , buffer_size_(buffer_size)
+  , info_manager_(node_.get(), frame_id)
+  , capture_delay_(rclcpp::Duration(rclcpp::Duration::from_seconds(node_->get_parameter_or("capture_delay", 0.0))))
 {
-    int dur = 0;
-    node_->get_parameter_or("capture_delay",dur,dur);
-    this->capture_delay_ = rclcpp::Duration(dur);
 }
 
 void Capture::loadCameraInfo()
@@ -54,7 +52,7 @@ void Capture::loadCameraInfo()
     }
     if (!cap_.set(code, value))
     {
-      RCLCPP_ERROR(node_->get_logger(),"Setting with code %s and value %s failed", code, value);
+      RCLCPP_ERROR(node_->get_logger(),"Setting with code %d and value %f failed", code, value);
     }
   }
 }

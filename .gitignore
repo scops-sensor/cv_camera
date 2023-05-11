@@ -1,3 +1,11 @@
+# Build, install, and log folders
+/build
+/install
+/log
+
+# Clang
+.cache
+
 # Compiled Object files
 *.slo
 *.lo
