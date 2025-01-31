@@ -7,12 +7,27 @@
 #include <string>
 
 #include <rclcpp/rclcpp.hpp>
-#include <cv_bridge/cv_bridge.hpp>
-#include <image_transport/image_transport.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
 #include <sensor_msgs/image_encodings.hpp>
 #include <opencv2/highgui/highgui.hpp>
+
+#if __has_include(<cv_bridge/cv_bridge.hpp>)
+#include <cv_bridge/cv_bridge.hpp>
+#else
+#include <cv_bridge/cv_bridge.h>
+#endif
+
+#if __has_include(<image_transport/image_transport.hpp>)
+#include <image_transport/image_transport.hpp>
+#else
+#include <image_transport/image_transport.h>
+#endif
+
+#if __has_include(<camera_info_manager/camera_info_manager.hpp>)
 #include <camera_info_manager/camera_info_manager.hpp>
+#else
+#include <camera_info_manager/camera_info_manager.h>
+#endif
 
 /**
  * @brief namespace of this package
