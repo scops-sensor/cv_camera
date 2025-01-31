@@ -25,7 +25,6 @@ find_package(rclcpp REQUIRED)
 find_package(image_transport REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(std_msgs REQUIRED)
-find_package(cv_bridge REQUIRED)
 find_package(camera_info_manager REQUIRED)
 # find_package(roslint REQUIRED)
 find_package(builtin_interfaces REQUIRED)
@@ -50,23 +49,23 @@ target_link_libraries(cv_camera_node ${Boost_LIBRARIES} cv_camera)
 
 ## Specify libraries to link a library or executable target against
 ament_target_dependencies(cv_camera
-        "rclcpp"
-        "sensor_msgs"
-        "image_transport"
-        "cv_bridge"
-        "camera_info_manager"
-        "std_msgs"
-        "OpenCV"
+        rclcpp
+        sensor_msgs
+        image_transport
+        cv_bridge
+        camera_info_manager
+        std_msgs
+        OpenCV
 )
 
 ament_target_dependencies(cv_camera_node
-        "rclcpp"
-        "sensor_msgs"
-        "std_msgs"
-        "OpenCV"
-        "camera_info_manager"
-        "image_transport"
-        "cv_bridge"
+        rclcpp
+        sensor_msgs
+        std_msgs
+        OpenCV
+        camera_info_manager
+        image_transport
+        cv_bridge
 )
 
 #############
