@@ -20,6 +20,7 @@ find_package(ament_cmake REQUIRED)
 
 
 find_package(OpenCV 4 REQUIRED)
+find_package(example_interfaces REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(image_transport REQUIRED)
@@ -50,6 +51,7 @@ target_link_libraries(cv_camera_node ${Boost_LIBRARIES} cv_camera)
 ## Specify libraries to link a library or executable target against
 ament_target_dependencies(cv_camera
         rclcpp
+        example_interfaces
         sensor_msgs
         image_transport
         cv_bridge
@@ -60,6 +62,7 @@ ament_target_dependencies(cv_camera
 
 ament_target_dependencies(cv_camera_node
         rclcpp
+        example_interfaces
         sensor_msgs
         std_msgs
         OpenCV
@@ -89,5 +92,11 @@ install(TARGETS cv_camera cv_camera_node
 install(DIRECTORY include/${PROJECT_NAME}/
   DESTINATION include/
   )
+
+# Install launch files.
+install(DIRECTORY
+  launch
+  DESTINATION share/${PROJECT_NAME}/
+)
 
 ament_package()

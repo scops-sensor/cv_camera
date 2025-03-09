@@ -22,7 +22,7 @@ void Driver::setup()
 {
   double hz(DEFAULT_RATE);
   int32_t device_id(0);
-  std::string device_path("");
+  std::string device_sn("");
   std::string frame_id("camera");
   std::string file_path("");
 
@@ -42,9 +42,9 @@ void Driver::setup()
   {
     camera_->openFile(file_path);
   }
-  else if (private_node_->get_parameter("device_path", device_path) && device_path != "")
+  else if (private_node_->get_parameter("device_sn", device_sn) && device_sn != "")
   {
-    camera_->open(device_path);
+    camera_->open(device_sn);
   }
   else
   {
@@ -65,12 +65,14 @@ void Driver::setup()
     }
   }
 
+  camera_->setY16();
+  
   camera_->setPropertyFromParam(cv::CAP_PROP_POS_MSEC, "cv_cap_prop_pos_msec");
   camera_->setPropertyFromParam(cv::CAP_PROP_POS_AVI_RATIO, "cv_cap_prop_pos_avi_ratio");
   camera_->setPropertyFromParam(cv::CAP_PROP_FRAME_WIDTH, "cv_cap_prop_frame_width");
   camera_->setPropertyFromParam(cv::CAP_PROP_FRAME_HEIGHT, "cv_cap_prop_frame_height");
   camera_->setPropertyFromParam(cv::CAP_PROP_FPS, "cv_cap_prop_fps");
-  camera_->setPropertyFromParam(cv::CAP_PROP_FOURCC, "cv_cap_prop_fourcc");
+  // camera_->setPropertyFromParam(cv::CAP_PROP_FOURCC, "cv_cap_prop_fourcc");
   camera_->setPropertyFromParam(cv::CAP_PROP_FRAME_COUNT, "cv_cap_prop_frame_count");
   camera_->setPropertyFromParam(cv::CAP_PROP_FORMAT, "cv_cap_prop_format");
   camera_->setPropertyFromParam(cv::CAP_PROP_MODE, "cv_cap_prop_mode");

@@ -7,27 +7,15 @@
 #include <string>
 
 #include <rclcpp/rclcpp.hpp>
-#include <sensor_msgs/msg/camera_info.hpp>
-#include <sensor_msgs/image_encodings.hpp>
-#include <opencv2/highgui/highgui.hpp>
-
-#if __has_include(<cv_bridge/cv_bridge.hpp>)
 #include <cv_bridge/cv_bridge.hpp>
-#else
-#include <cv_bridge/cv_bridge.h>
-#endif
-
-#if __has_include(<image_transport/image_transport.hpp>)
 #include <image_transport/image_transport.hpp>
-#else
-#include <image_transport/image_transport.h>
-#endif
-
-#if __has_include(<camera_info_manager/camera_info_manager.hpp>)
+#include <example_interfaces/msg/float64.hpp>
+#include <sensor_msgs/msg/camera_info.hpp>
+#include <sensor_msgs/msg/temperature.hpp>
+#include <sensor_msgs/image_encodings.hpp>
+#include <geometry_msgs/msg/point.hpp>
+#include <opencv2/highgui/highgui.hpp>
 #include <camera_info_manager/camera_info_manager.hpp>
-#else
-#include <camera_info_manager/camera_info_manager.h>
-#endif
 
 /**
  * @brief namespace of this package
@@ -67,10 +55,10 @@ public:
   /**
    * @brief Open capture device with device name.
    *
-   * @param device_path path of the camera device
+   * @param device_sn path of the camera device
    * @throw cv_camera::DeviceError device open failed
    */
-  void open(const std::string &device_path);
+  void open(const std::string &device_sn);
 
   /**
    * @brief Load camera info from file.
@@ -144,6 +132,30 @@ public:
   }
 
   /**
+   * @brief accessor of ROS Image viz message.
+   *
+   * you have to call capture() before call this.
+   *
+   * @return message pointer.
+   */
+  inline const sensor_msgs::msg::Image::SharedPtr getImageVizMsgPtr() const
+  {
+    return bridge_viz_.toImageMsg();
+  }
+
+  /**
+   * @brief accessor of ROS Image calibration message.
+   *
+   * you have to call capture() before call this.
+   *
+   * @return message pointer.
+   */
+  inline const sensor_msgs::msg::Image::SharedPtr getImageCalMsgPtr() const
+  {
+    return bridge_cal_.toImageMsg();
+  }
+
+  /**
    * @brief try capture image width
    * @return true if success
    */
@@ -162,10 +174,14 @@ public:
   }
 
   /**
-   * @brief set CV_PROP_*
+   * @brief set cv::PROP_*
    * @return true if success
    */
   bool setPropertyFromParam(int property_id, const std::string &param_name);
+
+  bool setY16();
+
+  void vizClickCallback(const geometry_msgs::msg::Point& pt);
 
 private:
   /**
@@ -225,6 +241,46 @@ private:
   camera_info_manager::CameraInfoManager info_manager_;
 
   /**
+   * @brief image publisher for visualization
+   */
+  image_transport::CameraPublisher pub_viz_;
+
+  /**
+   * @brief image publisher for visualization
+   */
+  image_transport::CameraPublisher pub_cal_;
+
+  /**
+   * @brief this stores last visualization image
+   */
+  cv_bridge::CvImage bridge_viz_;
+
+  /**
+   * @brief this stores last calibration image
+   */
+  cv_bridge::CvImage bridge_cal_;
+
+  /**
+   * @brief this stores info about visualization image
+   *
+   * currently this has image size (width/height) only.
+   */
+  sensor_msgs::msg::CameraInfo info_viz_;
+
+  /** @brief this stores info about the calibration image
+   *
+   * currently this has image size (width/height) only.
+   */
+  sensor_msgs::msg::CameraInfo info_cal_;
+
+  std::string clicktopic = topic_name_+"_viz_mouse_left";
+
+  rclcpp::Publisher<example_interfaces::msg::Float64>::SharedPtr pubmax;
+  rclcpp::Publisher<example_interfaces::msg::Float64>::SharedPtr pubmin;
+  rclcpp::Publisher<example_interfaces::msg::Float64>::SharedPtr pickedpoint;
+  rclcpp::Subscription<geometry_msgs::msg::Point>::SharedPtr clicksub;
+
+  /**
    * @brief rescale_camera_info param value
    */
   bool rescale_camera_info_;
@@ -233,6 +289,34 @@ private:
    * @brief capture_delay param value
    */
   rclcpp::Duration capture_delay_;
+
+  /**
+   * @brief mirror_horizontal_ param value
+   */
+  bool mirror_horizontal_;
+
+    /**
+   * @brief mirror_vertical_ param value
+   */
+  bool mirror_vertical_;
+
+  /**
+   * @brief publish_viz_ param value
+   */
+  bool publish_viz_;
+
+  /**
+   * @brief publish_cal_ param value
+   */
+  bool publish_cal_;
+
+  /**
+   * @brief invert_cal_ param value
+   */
+  bool invert_cal_;
+
+  int ptx = 0; 
+  int pty = 0;
 };
 
 } // namespace cv_camera
