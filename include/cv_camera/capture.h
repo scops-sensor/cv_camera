@@ -181,7 +181,7 @@ public:
 
   bool setY16();
 
-  void vizClickCallback(const geometry_msgs::msg::Point& pt);
+  void vizClickCallback(const geometry_msgs::msg::Point::SharedPtr pt);
 
 private:
   /**

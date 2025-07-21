@@ -31,7 +31,7 @@ Capture::Capture(rclcpp::Node::SharedPtr node, const std::string& topic_name, ui
 void Capture::loadCameraInfo()
 {
   std::string url;
-  if (node_->get_parameter("camera_info_url", url))
+  if (node_->get_parameter("camera_info_url", url) && !url.empty())
   {
     if (info_manager_.validateURL(url))
     {
@@ -94,6 +94,14 @@ void Capture::open(int32_t device_id)
   pub_ = it_.advertiseCamera(topic_name_, buffer_size_);
   if (publish_viz_){pub_viz_ = it_.advertiseCamera(topic_name_+"_viz", buffer_size_);}
   if (publish_cal_){pub_cal_ = it_.advertiseCamera(topic_name_+"_cal", buffer_size_);}
+
+  pubmax = node_->create_publisher<example_interfaces::msg::Float64>("max", 10);
+  pubmin = node_->create_publisher<example_interfaces::msg::Float64>("min", 10);
+  pickedpoint = node_->create_publisher<example_interfaces::msg::Float64>("point", 10);
+
+  clicksub = node_->create_subscription<geometry_msgs::msg::Point>(
+      topic_name_+"_viz_mouse_left", 10, std::bind(&Capture::vizClickCallback, this, std::placeholders::_1)
+  );
 
   loadCameraInfo();
 }
@@ -204,7 +212,7 @@ bool Capture::capture()
       info_.height = bridge_.image.rows;
       info_.width = bridge_.image.cols;
     }
-    else if (info_.height != bridge_.image.rows || info_.width != bridge_.image.cols)
+    else if (info_.height != static_cast<unsigned int>(bridge_.image.rows) || info_.width != static_cast<unsigned int>(bridge_.image.cols))
     {
       if (rescale_camera_info_)
       {
@@ -331,11 +339,11 @@ bool Capture::setY16()
   return true;
 }
 
-void Capture::vizClickCallback(const geometry_msgs::msg::Point& pt)
+void Capture::vizClickCallback(const geometry_msgs::msg::Point::SharedPtr pt)
 {
-  RCLCPP_INFO(node_->get_logger(),"Monitoring point temperature at: (%f,%f)",pt.x,pt.y);
-  ptx = static_cast<int>(pt.x);
-  pty = static_cast<int>(pt.y);
+  RCLCPP_INFO(node_->get_logger(), "Monitoring point temperature at: (%f,%f)", pt->x, pt->y);
+  ptx = static_cast<int>(pt->x);
+  pty = static_cast<int>(pt->y);
 }
 
 } // namespace cv_camera

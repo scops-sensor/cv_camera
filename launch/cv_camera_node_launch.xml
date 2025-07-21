@@ -1,21 +1,25 @@
 <launch>
-    <arg name="frame_id" default="ir_0"/>
+    <arg name="frame_id" default="camera"/>
     <arg name="device_id" default="0"/>
-    <arg name="device_sn" default=""/>  <!-- e.g.: 801c0030-5112-3039-3433-373300000000 -->
+    <arg name="device_sn" default=""/>  
+    <!-- e.g.: 801c0030-5112-3039-3433-373300000000  for lepton, or 28422 for boson-->
+    <!-- Find with 'udevadm info /dev/video0' or whatever device is the IR cam-->
+    <arg name="camera_info_url" default="file://$(env HOME)/.ros/camera_info/camera.yaml"/>
     <arg name="mirror_horizontal" default="false"/>
     <arg name="mirror_vertical" default="false"/>
     <arg name="pub_vizualization" default="true"/>
     <arg name="pub_calibration" default="false"/>
     <node pkg="cv_camera" exec="cv_camera_node" name="cv_camera_node" output="screen">
-        <param name="frame_id" value="$(var frame_id)" />
-        <param name="device_id" value="$(var device_id)" />
-        <param name="device_sn" value="$(var device_sn)" />
-        <param name="cv_cap_prop_format" value="-1"/>
-        <param name="cv_cap_prop_convert_rgb" value="0"/>
-        <param name="mirror_horizontal" value="$(var mirror_horizontal)"/>
-        <param name="mirror_vertical" value="$(var mirror_vertical)"/>
-        <param name="pub_vizualization" value="$(var pub_vizualization)"/>
-        <param name="pub_calibration" value="$(var pub_calibration)"/>
+        <param name="frame_id" value="$(var frame_id)"  type="str"/>
+        <param name="device_id" value="$(var device_id)"  type="int"/>
+        <param name="device_sn" value="$(var device_sn)"  type="str"/>
+        <param name="camera_info_url" value="$(var camera_info_url)"  type="str"/>
+        <param name="cv_cap_prop_format" value="-1" type="float"/>
+        <param name="cv_cap_prop_convert_rgb" value="0" type="float"/>
+        <param name="mirror_horizontal" value="$(var mirror_horizontal)"  type="bool"/>
+        <param name="mirror_vertical" value="$(var mirror_vertical)"  type="bool"/>
+        <param name="pub_vizualization" value="$(var pub_vizualization)"  type="bool"/>
+        <param name="pub_calibration" value="$(var pub_calibration)"  type="bool"/>
     </node>
 
 </launch>
