@@ -26,6 +26,18 @@ Capture::Capture(rclcpp::Node::SharedPtr node, const std::string& topic_name, ui
   , publish_cal_(node_->get_parameter_or("pub_calibration", false))
   , invert_cal_(node_->get_parameter_or("invert_calibration", false))
 {
+  pub_ = it_.advertiseCamera(topic_name_, buffer_size_);
+  if (publish_viz_){pub_viz_ = it_.advertiseCamera(topic_name_+"_viz", buffer_size_);}
+  if (publish_cal_){pub_cal_ = it_.advertiseCamera(topic_name_+"_cal", buffer_size_);}
+
+  pubmax = node_->create_publisher<example_interfaces::msg::Float64>("max", 10);
+  pubmin = node_->create_publisher<example_interfaces::msg::Float64>("min", 10);
+  pickedpoint = node_->create_publisher<example_interfaces::msg::Float64>("point", 10);
+
+  clicksub = node_->create_subscription<geometry_msgs::msg::Point>(
+      topic_name_+"_viz_mouse_left", 10, std::bind(&Capture::vizClickCallback, this, std::placeholders::_1)
+  );
+  loadCameraInfo();
 }
 
 void Capture::loadCameraInfo()
@@ -82,6 +94,59 @@ void Capture::rescaleCameraInfo(uint width, uint height)
   info_.p[6] *= height_coeff;
 }
 
+void Capture::search(const std::string &device_sn)
+{
+  // Search USB devices for matching serial number using udevadm output
+  std::array<char, 128> buffer;
+  bool is_video = false;
+  bool serial_matches = false;
+  int device_open_id;
+  std::string result, current_line, device_num;
+
+  for(int i = 0; i < 99; i++){
+    result = "";
+    std::string cmdstr = std::string("v4l2-ctl --info -d /dev/video") + std::to_string(i);
+    const char* cmd = cmdstr.c_str();
+    std::shared_ptr<FILE> pipe(popen(cmd, "r"), pclose);
+    if (!pipe) throw std::runtime_error("popen() failed!");
+    while (!feof(pipe.get())) {
+        if (fgets(buffer.data(), 128, pipe.get()) != nullptr)
+            result += buffer.data();
+    }
+    std::istringstream lsusboutut{result};
+
+    is_video = false;
+    serial_matches = false;
+
+    while (std::getline(lsusboutut, current_line))
+    {
+      std::smatch m; 
+      if(std::regex_search(current_line, m, std::regex("Device Caps      : 0x04200001"))){
+        is_video = true;
+      }
+
+      std::smatch mm; 
+      if(std::regex_search(current_line, mm, std::regex(device_sn.c_str()))){
+        serial_matches = true;
+      }
+
+      if(is_video and serial_matches){
+        device_open_id = i;
+        break;
+      }
+    }
+    // TODO: this doesn't check if multiple devices match the serial, just uses the last
+  }
+  RCLCPP_INFO(node_->get_logger(),"Found device with matching serial number: /dev/video%s, %s\n",
+                                       std::to_string(device_open_id).c_str(), device_sn.c_str());
+
+  cap_.open(device_open_id, cv::CAP_V4L2);
+  if (!cap_.isOpened())
+  {
+    throw DeviceError("device_sn " + device_sn + " with /dev/video" + std::to_string(device_open_id) +" cannot be opened");
+  }
+}
+
 void Capture::open(int32_t device_id)
 {
   cap_.open(device_id,cv::CAP_V4L2);
@@ -91,66 +156,17 @@ void Capture::open(int32_t device_id)
     stream << "device_id" << device_id << " cannot be opened";
     throw DeviceError(stream.str());
   }
-  pub_ = it_.advertiseCamera(topic_name_, buffer_size_);
-  if (publish_viz_){pub_viz_ = it_.advertiseCamera(topic_name_+"_viz", buffer_size_);}
-  if (publish_cal_){pub_cal_ = it_.advertiseCamera(topic_name_+"_cal", buffer_size_);}
-
-  pubmax = node_->create_publisher<example_interfaces::msg::Float64>("max", 10);
-  pubmin = node_->create_publisher<example_interfaces::msg::Float64>("min", 10);
-  pickedpoint = node_->create_publisher<example_interfaces::msg::Float64>("point", 10);
-
-  clicksub = node_->create_subscription<geometry_msgs::msg::Point>(
-      topic_name_+"_viz_mouse_left", 10, std::bind(&Capture::vizClickCallback, this, std::placeholders::_1)
-  );
-
-  loadCameraInfo();
 }
 
-void Capture::open(const std::string &device_sn)
+void Capture::open(const std::string &device_path)
 {
-  // Search USB devices for matching serial number using udevadm output
-  std::array<char, 128> buffer;
-  int device_open_id;
-  std::string result, current_line, device_num;
-
-  for(int i = 0; i < 30; i++){
-  std::string cmdstr = std::string("udevadm info --name=/dev/video") + std::to_string(i);
-  const char* cmd = cmdstr.c_str();
-  std::shared_ptr<FILE> pipe(popen(cmd, "r"), pclose);
-  if (!pipe) throw std::runtime_error("popen() failed!");
-  while (!feof(pipe.get())) {
-      if (fgets(buffer.data(), 128, pipe.get()) != nullptr)
-          result += buffer.data();
-  }
-  std::istringstream lsusboutut{result};
-
-  while (std::getline(lsusboutut, current_line))
-  {
-    std::smatch m; 
-    if(std::regex_search(current_line, m, std::regex("N: video(\\d+)"))){
-      device_num = m[1].str();
-    }
-
-    std::smatch mm; 
-    if(std::regex_search(current_line, mm, std::regex(device_sn.c_str()))){
-      device_open_id = std::stoi(device_num);
-      break;
-    }
-  }
-  // TODO: this doesn't check if multiple devices match the serial, just uses the last
-  }
-  RCLCPP_INFO(node_->get_logger(),"Found device with matching serial number: /dev/video%s, %s\n", device_num.c_str(), device_sn.c_str());
-
-  cap_.open(device_open_id, cv::CAP_V4L2);
+  cap_.open(device_path,cv::CAP_V4L2);
   if (!cap_.isOpened())
   {
-    throw DeviceError("device_sn " + device_sn + " cannot be opened");
+    std::stringstream stream;
+    stream << "device_id" << device_path << " cannot be opened";
+    throw DeviceError(stream.str());
   }
-  pub_ = it_.advertiseCamera(topic_name_, buffer_size_);
-  if (publish_viz_){pub_viz_ = it_.advertiseCamera(topic_name_+"_viz", buffer_size_);}
-  if (publish_cal_){pub_cal_ = it_.advertiseCamera(topic_name_+"_cal", buffer_size_);}
-
-  loadCameraInfo();
 }
 
 void Capture::open()
@@ -167,11 +183,6 @@ void Capture::openFile(const std::string &file_path)
     stream << "file " << file_path << " cannot be opened";
     throw DeviceError(stream.str());
   }
-  pub_ = it_.advertiseCamera(topic_name_, buffer_size_);
-  if (publish_viz_){pub_viz_ = it_.advertiseCamera(topic_name_+"_viz", buffer_size_);}
-  if (publish_cal_){pub_cal_ = it_.advertiseCamera(topic_name_+"_cal", buffer_size_);}
-
-  loadCameraInfo();
 }
 
 bool Capture::capture()

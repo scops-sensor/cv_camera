@@ -22,11 +22,13 @@ void Driver::setup()
 {
   double hz(DEFAULT_RATE);
   int32_t device_id(0);
+  std::string device_id_str("");
   std::string device_sn("");
+  std::string device_path("");
   std::string frame_id("camera");
   std::string file_path("");
 
-  private_node_->get_parameter("device_id", device_id);
+  private_node_->get_parameter("device_id", device_id_str);
   private_node_->get_parameter("frame_id", frame_id);
   private_node_->get_parameter("rate", hz);
 
@@ -44,10 +46,17 @@ void Driver::setup()
   }
   else if (private_node_->get_parameter("device_sn", device_sn) && device_sn != "")
   {
-    camera_->open(device_sn);
+    camera_->search(device_sn);
+  }
+  else if (private_node_->get_parameter("device_path", device_path) && device_path != "")
+  {
+    camera_->open(device_path);
   }
   else
   {
+    if(device_id_str != ""){
+      device_id = std::stoi(device_id_str);
+    }
     camera_->open(device_id);
   }
   if (private_node_->get_parameter("image_width", image_width))

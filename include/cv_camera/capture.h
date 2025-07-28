@@ -55,10 +55,18 @@ public:
   /**
    * @brief Open capture device with device name.
    *
+   * @param device_path path of the camera device
+   * @throw cv_camera::DeviceError device open failed
+   */
+  void open(const std::string &device_path);
+
+  /**
+   * @brief Open capture device with device name.
+   *
    * @param device_sn path of the camera device
    * @throw cv_camera::DeviceError device open failed
    */
-  void open(const std::string &device_sn);
+  void search(const std::string &device_sn);
 
   /**
    * @brief Load camera info from file.
